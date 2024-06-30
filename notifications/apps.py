@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class ThridPartyConfig(AppConfig):
+class NotificationsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'thrid_party'
+    name = 'notifications'

@@ -1,17 +1,15 @@
-from django.db import models
-
-# Create your models here.
-from django.utils import timezone
-
 from django.contrib.auth.models import AbstractUser
 from django.db.models.signals import post_save
 from django.utils.translation import gettext as _
-
 from django.db import models
 from common.models import BaseModel
 
 from phonenumber_field.modelfields import PhoneNumberField
 
+"""
+Usefule Links:
+    https://docs.allauth.org/en/latest/
+"""
 
 USER_TYPE_OPTION = (
     ("employee", "Employee"),
@@ -20,7 +18,9 @@ USER_TYPE_OPTION = (
 )
 
 
-class User(AbstractUser, BaseModel):
+class CustomUser(AbstractUser, BaseModel):
+    username = None
+    email = models.EmailField(_('email address'), unique=True)
     phone = PhoneNumberField(
         verbose_name="mobile number",
         null=True,
@@ -37,11 +37,25 @@ class User(AbstractUser, BaseModel):
     )
     is_organisor = models.BooleanField(default=False)
 
-    USERNAME_FIELD = "username"
+    USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     def __str__(self):
-        return f"{self.username}({self.email})"
+        return f"{self.email}"
 
     class Meta:
         verbose_name_plural = "Users"
+
+
+def post_user_created_signal(sender, instance, created, **kwargs):
+    from subscription.models import Organization, Branch, Profile
+
+    if created and instance.is_organisor:
+        org = Organization.objects.create(user=instance)
+        if org:
+            Branch.objects.create(Organization=org)
+    else:
+        Profile.objects.get_or_create(user=instance)
+
+
+post_save.connect(post_user_created_signal, sender=CustomUser)
